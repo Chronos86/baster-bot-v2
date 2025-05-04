@@ -313,7 +313,7 @@ class ScalpingBot:
                 self.model.add(LSTM(50, return_sequences=False))
                 self.model.add(Dense(25, activation='relu'))
                 self.model.add(Dense(1))
-                self.model.compile(optimizer=\'adam\
+                self.model.compile(optimizer=\'adam\', loss=\'mse\')
                 logger.info("TensorFlow LSTM model built successfully.")
             except Exception as e:
                 logger.error(f"Error building TensorFlow LSTM model: {e}. Falling back to mock model.", exc_info=True)
