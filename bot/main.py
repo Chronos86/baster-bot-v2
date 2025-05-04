@@ -311,7 +311,7 @@ class ScalpingBot:
                 self.model = Sequential(name="TensorFlowLSTM")
                 self.model.add(LSTM(50, return_sequences=True, input_shape=input_shape))
                 self.model.add(LSTM(50, return_sequences=False))
-                self.model.add(Dense(25, activation=\'relu\
+                self.model.add(Dense(25, activation='relu'))
                 self.model.add(Dense(1))
                 self.model.compile(optimizer=\'adam\
                 logger.info("TensorFlow LSTM model built successfully.")
