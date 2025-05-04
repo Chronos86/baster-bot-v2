@@ -1,0 +1,52 @@
+# config.yaml - Konfiguracja Bota Tradingowego
+
+binance:
+  # Ustaw na `false` dla handlu na prawdziwym rynku Binance
+  # Ustaw na `true` dla testów na Binance Testnet
+  testnet: true
+  # Symbol pary do handlu (np. BTCUSDT, ETHUSDT)
+  symbol: "BTCUSDT"
+  # Wielkość pozycji w jednostkach waluty bazowej (np. 0.001 BTC)
+  position_size: 0.001
+
+telegram:
+  # Token Twojego bota Telegram (uzyskany od BotFather)
+  # Zastąp "YOUR_TELEGRAM_BOT_TOKEN" swoim tokenem
+  bot_token: "YOUR_TELEGRAM_BOT_TOKEN"
+  # ID czatu (prywatnego lub grupowego), na który bot ma wysyłać powiadomienia
+  # Zastąp "YOUR_TELEGRAM_CHAT_ID" swoim ID czatu
+  chat_id: "YOUR_TELEGRAM_CHAT_ID"
+
+panel:
+  # Dane logowania do panelu webowego
+  username: "2025sellit"
+  # Hasło zostanie zaszyfrowane SHA-256 przy pierwszym użyciu
+  password: "Baster789!"
+
+risk:
+  # Maksymalna dopuszczalna dzienna strata jako ułamek kapitału (np. 0.6 = 60%)
+  max_daily_loss: 0.6
+  # Procentowy stop loss dla pojedynczej transakcji (np. 0.005 = 0.5%)
+  stop_loss_pct: 0.005
+  # Procentowy take profit dla pojedynczej transakcji (np. 0.01 = 1.0%)
+  take_profit_pct: 0.01
+
+sentiment:
+  # Opcjonalny klucz API X/Twitter dla analizy sentymentu
+  # Zastąp "YOUR_X_API_KEY" swoim kluczem, jeśli go posiadasz
+  x_api_key: "YOUR_X_API_KEY"
+  # URL strony CoinDesk do scrapingu nagłówków dla analizy sentymentu
+  coindesk_url: "https://www.coindesk.com/tag/bitcoin"
+
+lstm:
+  # Liczba okresów wstecz używanych przez model LSTM do predykcji
+  look_back: 10
+  # Co ile sekund trenować model LSTM (np. 3600 = 1 godzina)
+  train_interval_seconds: 3600
+
+update_intervals:
+  # Co ile sekund aktualizować sentyment (np. 900 = 15 minut)
+  sentiment_update_seconds: 900
+  # Co ile godzin aktualizować najlepszy wskaźnik (np. 24 = raz dziennie)
+  indicator_update_hours: 24
+
