@@ -20,9 +20,6 @@ apprise>=1.1.0 # Or latest compatible
 # Process Manager for Render
 honcho>=1.1.0
 
-# TA-Lib (Wrapper, requires TA-Lib C library to be installed first)
-TA-Lib>=0.4.24 # Check latest compatible version
-
 # Optional: TensorFlow for LSTM (Install manually or ensure sufficient resources)
 # tensorflow>=2.10.0 # Uncomment if using TensorFlow and ensure build environment supports it
 
