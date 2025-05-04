@@ -17,7 +17,8 @@ KEYS_DB_PATH = os.path.join(DB_DIR, "api_keys.db")
 TRADES_DB_PATH = os.path.join(DB_DIR, "trades.db")
 
 # Configure logging for the panel
-logging.basicConfig(level=logging.INFO, format=\"%(asctime)s - %(name)s - %(levelname)s - %(message)s\", datefmt=\"%Y-%m-%d %H:%M:%S\")
+# Corrected line 20: Using double quotes for format strings
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
 # --- Database Functions ---
@@ -33,7 +34,7 @@ def get_db_connection(db_path):
         return None
 
 def init_databases():
-    """Initializes databases and tables if they don\t exist."""
+    """Initializes databases and tables if they don't exist."""
     try:
         os.makedirs(DB_DIR, exist_ok=True)
         # Init Keys DB
@@ -58,7 +59,7 @@ def init_databases():
                     price REAL NOT NULL,
                     quantity REAL NOT NULL,
                     order_id TEXT UNIQUE NOT NULL,
-                    status TEXT DEFAULT \'OPEN\',
+                    status TEXT DEFAULT 'OPEN',
                     pnl REAL DEFAULT 0.0
                 )
             """)
@@ -159,8 +160,8 @@ def get_trade_history(limit=100):
         query = f"SELECT timestamp, symbol, side, price, quantity, order_id, status, pnl FROM trades ORDER BY timestamp DESC LIMIT {limit}"
         df = pd.read_sql_query(query, conn)
         # Convert timestamp to readable format
-        if not df.empty and \"timestamp\" in df.columns:
-             df[\"timestamp\"] = pd.to_datetime(df[\"timestamp\"]).dt.strftime(\"%Y-%m-%d %H:%M:%S\")
+        if not df.empty and "timestamp" in df.columns:
+             df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.strftime("%Y-%m-%d %H:%M:%S")
         return df
     except Exception as e:
         logger.error(f"Error fetching trade history: {e}")
@@ -205,9 +206,9 @@ def plot_daily_pnl(reports_df):
         title="Daily Profit and Loss (Estimated)",
         xaxis_title="Date",
         yaxis_title="PnL (USDT)",
-        plot_bgcolor=\"rgba(0,0,0,0)\", # Transparent background
-        paper_bgcolor=\"rgba(0,0,0,0)\",
-        font=dict(color=\"white\") # Adjust font color if needed
+        plot_bgcolor="rgba(0,0,0,0)", # Transparent background
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white") # Adjust font color if needed
     )
     return fig
 
@@ -224,17 +225,17 @@ def plot_cumulative_pnl(reports_df):
     fig.add_trace(go.Scatter(
         x=reports_df["date"],
         y=reports_df["cumulative_pnl"],
-        mode=\"lines+markers\",
+        mode="lines+markers",
         name="Cumulative PnL",
-        line=dict(color=\"cyan\")
+        line=dict(color="cyan")
     ))
     fig.update_layout(
         title="Cumulative Profit and Loss (Estimated)",
         xaxis_title="Date",
         yaxis_title="Cumulative PnL (USDT)",
-        plot_bgcolor=\"rgba(0,0,0,0)\",
-        paper_bgcolor=\"rgba(0,0,0,0)\",
-        font=dict(color=\"white\")
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="white")
     )
     return fig
 
@@ -284,8 +285,8 @@ else:
             # Display key metrics from the latest report
             latest_report = reports_df.iloc[0]
             col1, col2, col3 = st.columns(3)
-            col1.metric("Latest Daily PnL (Est.)", f"{latest_report[\'total_pnl\']:.2f} USDT", delta=f"{latest_report[\'total_pnl\']:.2f}")
-            col2.metric("Latest Win Rate (Est.)", f"{latest_report[\'win_rate\']:.2f}%")
+            col1.metric("Latest Daily PnL (Est.)", f"{latest_report['total_pnl']:.2f} USDT", delta=f"{latest_report['total_pnl']:.2f}")
+            col2.metric("Latest Win Rate (Est.)", f"{latest_report['win_rate']:.2f}%")
             col3.metric("Latest Indicator", latest_report["best_indicator"].upper())
             
             st.plotly_chart(plot_daily_pnl(reports_df), use_container_width=True)
@@ -334,10 +335,10 @@ else:
         st.info("This section is a placeholder for future settings adjustments (e.g., risk parameters, strategy toggles). Currently, settings are managed via the `config.yaml` file.")
         
         try:
-            with open(CONFIG_PATH, \"r\") as f:
+            with open(CONFIG_PATH, "r") as f:
                 config_content = f.read()
             st.subheader("Current `config.yaml`")
-            st.code(config_content, language=\"yaml\")
+            st.code(config_content, language="yaml")
         except Exception as e:
             st.error(f"Could not read config file: {e}")
 
