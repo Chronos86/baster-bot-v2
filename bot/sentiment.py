@@ -6,7 +6,8 @@ import re
 import logging
 
 # Configure logging for this module
-logging.basicConfig(level=logging.INFO, format=\'%(asctime)s - %(name)s - %(levelname)s - %(message)s\')
+# Corrected line 9: Using double quotes for the format string
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
 def get_sentiment(config: dict) -> float:
@@ -104,7 +105,7 @@ def get_sentiment(config: dict) -> float:
         return 0.0
 
 # --- Example Usage (for testing) --- 
-if __name__ == \'__main__\':
+if __name__ == '__main__':
     print("Testing sentiment analysis...")
     # Mock config for testing
     mock_config = {
