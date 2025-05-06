@@ -41,3 +41,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . .
 
 CMD ["honcho", "start"]
+
