@@ -11,23 +11,20 @@ from datetime import datetime, timedelta
 import logging
 
 # --- Configuration & Setup ---
-# Corrected paths to use absolute paths within the Docker container
 APP_ROOT = "/app"
 CONFIG_PATH = os.path.join(APP_ROOT, "config.yaml")
 DB_DIR = os.path.join(APP_ROOT, "database")
-KEYS_DB_PATH = os.path.join(DB_DIR, "api_keys.db")
+# KEYS_DB_PATH is no longer used as keys are from env vars
 TRADES_DB_PATH = os.path.join(DB_DIR, "trades.db")
 
-# Configure logging for the panel
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", datefmt="%Y-%m-%d %H:%M:%S")
 logger = logging.getLogger(__name__)
 
 # --- Database Functions ---
 def get_db_connection(db_path):
-    """Establishes a connection to the SQLite database."""
     try:
         conn = sqlite3.connect(db_path, check_same_thread=False)
-        conn.row_factory = sqlite3.Row # Return rows as dictionary-like objects
+        conn.row_factory = sqlite3.Row
         return conn
     except sqlite3.Error as e:
         logger.error(f"Error connecting to database at {db_path}: {e}")
@@ -35,19 +32,12 @@ def get_db_connection(db_path):
         return None
 
 def init_databases():
-    """Initializes databases and tables if they don't exist."""
+    """Initializes trades database. API keys are now managed via environment variables."""
     try:
         os.makedirs(DB_DIR, exist_ok=True)
-        # Init Keys DB
-        conn_keys = get_db_connection(KEYS_DB_PATH)
-        if conn_keys:
-            cursor_keys = conn_keys.cursor()
-            cursor_keys.execute("CREATE TABLE IF NOT EXISTS api_keys (id INTEGER PRIMARY KEY, api_key TEXT, api_secret TEXT)")
-            conn_keys.commit()
-            conn_keys.close()
-            logger.info(f"API keys database initialized at {KEYS_DB_PATH}")
+        # API Keys DB (api_keys.db) is no longer initialized here.
+        # logger.info(f"API keys database setup skipped as keys are managed via environment variables.")
         
-        # Init Trades DB
         conn_trades = get_db_connection(TRADES_DB_PATH)
         if conn_trades:
             cursor_trades = conn_trades.cursor()
@@ -85,18 +75,16 @@ def init_databases():
 
 # --- Authentication Functions ---
 def hash_password(password):
-    """Hashes the password using SHA-256."""
     return hashlib.sha256(password.encode()).hexdigest()
 
 def verify_login(username, password):
-    """Verifies login credentials against the config file."""
     try:
         with open(CONFIG_PATH, "r") as file:
             config = yaml.safe_load(file)
         
         stored_username = config.get("panel", {}).get("username", "admin")
-        stored_password_plain = config.get("panel", {}).get("password", "password")
-        stored_password_hash = hash_password(stored_password_plain)
+        stored_password_plain = config.get("panel", {}).get("password", "password") # Plain password from config
+        stored_password_hash = hash_password(stored_password_plain) # Hash it for comparison
         
         if username == stored_username and hash_password(password) == stored_password_hash:
             return True
@@ -111,56 +99,16 @@ def verify_login(username, password):
         st.error(f"Error reading configuration: {e}")
         return False
 
-# --- API Key Functions ---
-def save_api_keys(api_key, api_secret):
-    """Saves or updates API keys in the database."""
-    conn = get_db_connection(KEYS_DB_PATH)
-    if not conn:
-        return False
-    try:
-        cursor = conn.cursor()
-        # Use INSERT OR REPLACE to handle both initial save and update
-        cursor.execute("INSERT OR REPLACE INTO api_keys (id, api_key, api_secret) VALUES (1, ?, ?)", (api_key, api_secret))
-        conn.commit()
-        logger.info("API keys saved successfully.")
-        return True
-    except sqlite3.Error as e:
-        logger.error(f"Database error saving API keys: {e}")
-        st.error(f"Database error saving keys: {e}")
-        return False
-    finally:
-        if conn: conn.close()
-
-def load_api_keys():
-    """Loads API keys from the database."""
-    conn = get_db_connection(KEYS_DB_PATH)
-    if not conn:
-        return None, None
-    try:
-        cursor = conn.cursor()
-        cursor.execute("SELECT api_key, api_secret FROM api_keys WHERE id = 1")
-        result = cursor.fetchone()
-        if result:
-            return result["api_key"], result["api_secret"]
-        else:
-            return None, None
-    except sqlite3.Error as e:
-        logger.error(f"Database error loading API keys: {e}")
-        st.error(f"Database error loading keys: {e}")
-        return None, None
-    finally:
-        if conn: conn.close()
+# API Key functions (save_api_keys, load_api_keys) are removed as keys are now from env vars.
 
 # --- Reporting Functions ---
 def get_trade_history(limit=100):
-    """Retrieves recent trade history from the database."""
     conn = get_db_connection(TRADES_DB_PATH)
     if not conn:
         return pd.DataFrame()
     try:
         query = f"SELECT timestamp, symbol, side, price, quantity, order_id, status, pnl FROM trades ORDER BY timestamp DESC LIMIT {limit}"
         df = pd.read_sql_query(query, conn)
-        # Convert timestamp to readable format
         if not df.empty and "timestamp" in df.columns:
              df["timestamp"] = pd.to_datetime(df["timestamp"]).dt.strftime("%Y-%m-%d %H:%M:%S")
         return df
@@ -172,7 +120,6 @@ def get_trade_history(limit=100):
         if conn: conn.close()
 
 def get_daily_reports(limit=30):
-    """Retrieves recent daily reports from the database."""
     conn = get_db_connection(TRADES_DB_PATH)
     if not conn:
         return pd.DataFrame()
@@ -189,13 +136,9 @@ def get_daily_reports(limit=30):
 
 # --- Plotting Functions ---
 def plot_daily_pnl(reports_df):
-    """Generates a Plotly chart for daily PnL."""
     if reports_df.empty or "date" not in reports_df.columns or "total_pnl" not in reports_df.columns:
         return go.Figure()
-    
-    # Ensure data is sorted by date for plotting
     reports_df = reports_df.sort_values("date")
-    
     fig = go.Figure()
     fig.add_trace(go.Bar(
         x=reports_df["date"],
@@ -207,21 +150,17 @@ def plot_daily_pnl(reports_df):
         title="Daily Profit and Loss (Estimated)",
         xaxis_title="Date",
         yaxis_title="PnL (USDT)",
-        plot_bgcolor="rgba(0,0,0,0)", # Transparent background
+        plot_bgcolor="rgba(0,0,0,0)",
         paper_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="white") # Adjust font color if needed
+        font=dict(color="white")
     )
     return fig
 
 def plot_cumulative_pnl(reports_df):
-    """Generates a Plotly chart for cumulative PnL."""
     if reports_df.empty or "date" not in reports_df.columns or "total_pnl" not in reports_df.columns:
         return go.Figure()
-        
-    # Ensure data is sorted by date and calculate cumulative PnL
     reports_df = reports_df.sort_values("date")
     reports_df["cumulative_pnl"] = reports_df["total_pnl"].cumsum()
-    
     fig = go.Figure()
     fig.add_trace(go.Scatter(
         x=reports_df["date"],
@@ -242,86 +181,79 @@ def plot_cumulative_pnl(reports_df):
 
 # --- Streamlit App Layout ---
 st.set_page_config(page_title="Trading Bot Panel", layout="wide", initial_sidebar_state="collapsed")
-
-# Initialize databases on first run
 init_databases()
 
-# --- Login Handling ---
 if "logged_in" not in st.session_state:
     st.session_state.logged_in = False
 
 if not st.session_state.logged_in:
     st.title("Trading Bot Login")
-    
-    # Simple login form inspired by WordPress (minimalist)
     with st.form("login_form"):
         username = st.text_input("Username", key="login_username")
         password = st.text_input("Password", type="password", key="login_password")
         submitted = st.form_submit_button("Log In")
-        
         if submitted:
             if verify_login(username, password):
                 st.session_state.logged_in = True
-                st.rerun() # Rerun the script to show the main panel
+                st.rerun()
             else:
                 st.error("Invalid username or password.")
 else:
-    # --- Main Panel (after login) ---
     st.sidebar.title("Navigation")
     page = st.sidebar.radio("Go to", ["Dashboard", "API Configuration", "Trade History", "Settings"])
-    
     if st.sidebar.button("Logout"):
         st.session_state.logged_in = False
         st.rerun()
 
     st.title(f"Trading Bot Panel - {page}")
 
-    # --- Dashboard Page ---
     if page == "Dashboard":
         st.header("Performance Overview")
-        
         reports_df = get_daily_reports()
-        
         if not reports_df.empty:
-            # Display key metrics from the latest report
             latest_report = reports_df.iloc[0]
             col1, col2, col3 = st.columns(3)
             col1.metric("Latest Daily PnL (Est.)", f"{latest_report['total_pnl']:.2f} USDT", delta=f"{latest_report['total_pnl']:.2f}")
             col2.metric("Latest Win Rate (Est.)", f"{latest_report['win_rate']:.2f}%")
             col3.metric("Latest Indicator", latest_report["best_indicator"].upper())
-            
             st.plotly_chart(plot_daily_pnl(reports_df), use_container_width=True)
             st.plotly_chart(plot_cumulative_pnl(reports_df), use_container_width=True)
-            
             st.subheader("Recent Daily Reports")
             st.dataframe(reports_df, use_container_width=True)
         else:
             st.info("No daily reports found yet. The bot needs to run and generate reports.")
 
-    # --- API Configuration Page ---
     elif page == "API Configuration":
-        st.header("Binance API Keys")
-        st.warning("Handle your API keys with extreme care. Ensure they have only the necessary permissions (trading).", icon="⚠️")
+        st.header("Binance API Key Configuration (via Environment Variables)")
+        st.warning("API Keys are now managed via Environment Variables in your Render.com service settings for improved security and persistence.", icon="🔒")
         
-        current_api_key, current_api_secret = load_api_keys()
-        
-        with st.form("api_key_form"):
-            api_key = st.text_input("API Key", value=current_api_key or "", type="password")
-            api_secret = st.text_input("Secret Key", value=current_api_secret or "", type="password")
-            submitted = st.form_submit_button("Save API Keys")
-            
-            if submitted:
-                if api_key and api_secret:
-                    if save_api_keys(api_key, api_secret):
-                        st.success("API keys saved successfully! The bot will attempt to use them on its next check.")
-                    else:
-                        st.error("Failed to save API keys.")
-                else:
-                    st.warning("Please provide both API Key and Secret Key.")
-                    
-        st.info("After saving, the running bot should automatically pick up the keys within a few minutes and attempt to connect to Binance.")
+        st.markdown("""
+        **How to set up your API Keys:**
 
-    # --- Trade History Page ---
+        1.  Go to your service settings on **Render.com**.
+        2.  Navigate to the **Environment** section.
+        3.  Add the following two **Environment Variables**:
+            *   `BINANCE_API_KEY` : Your Binance API Key
+            *   `BINANCE_API_SECRET` : Your Binance API Secret Key
+        4.  **Save the changes** in Render.com.
+        5.  **Redeploy your service** on Render.com if prompted, or the bot should pick up the new variables on its next restart.
+
+        **Important Notes:**
+        *   Ensure your API keys have the necessary permissions on Binance (e.g., `Enable Reading`, `Enable Spot & Margin Trading`).
+        *   **NEVER** enable `Enable Withdrawals` for API keys used by bots.
+        *   Make sure the keys correspond to the correct environment (Testnet vs. Mainnet) as configured in your `config.yaml` (`testnet: true` or `testnet: false`).
+        *   The bot will automatically attempt to load these keys when it starts.
+        """)
+        
+        # Check if environment variables seem to be set (this is just a hint, bot actually uses them)
+        env_api_key_present = bool(os.getenv("BINANCE_API_KEY"))
+        env_api_secret_present = bool(os.getenv("BINANCE_API_SECRET"))
+
+        if env_api_key_present and env_api_secret_present:
+            st.success("Environment variables BINANCE_API_KEY and BINANCE_API_SECRET appear to be set in the environment. The bot will attempt to use them.", icon="✅")
+        else:
+            st.error("One or both environment variables (BINANCE_API_KEY, BINANCE_API_SECRET) do not seem to be set in this panel's environment. Please ensure they are correctly set in your Render.com service environment settings for the bot to function.", icon="⚠️")
+
     elif page == "Trade History":
         st.header("Recent Trades")
         trade_history_df = get_trade_history()
@@ -330,11 +262,9 @@ else:
         else:
             st.info("No trade history found yet.")
             
-    # --- Settings Page (Placeholder) ---
     elif page == "Settings":
         st.header("Bot Settings")
-        st.info("This section is a placeholder for future settings adjustments (e.g., risk parameters, strategy toggles). Currently, settings are managed via the `config.yaml` file.")
-        
+        st.info("This section is a placeholder for future settings adjustments. Currently, most settings are managed via the `config.yaml` file.")
         try:
             with open(CONFIG_PATH, "r") as f:
                 config_content = f.read()
