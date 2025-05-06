@@ -3,7 +3,7 @@
 binance:
   # Ustaw na `false` dla handlu na prawdziwym rynku Binance
   # Ustaw na `true` dla testów na Binance Testnet
-  testnet: true
+  testnet: false
   # Symbol pary do handlu (np. BTCUSDT, ETHUSDT)
   symbol: "BTCUSDT"
   # Wielkość pozycji w jednostkach waluty bazowej (np. 0.001 BTC)
