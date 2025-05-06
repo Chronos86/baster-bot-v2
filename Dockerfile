@@ -1,9 +1,7 @@
 # Dockerfile for Trading Bot on Render.com
 
-# Use an official Python runtime as a parent image
 FROM python:3.11-slim
 
-# Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
@@ -12,10 +10,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     wget \
     unzip \
+    pkg-config \
     && rm -rf /var/lib/apt/lists/*
 
 # --- Install TA-Lib C Library --- 
-# Download and install TA-Lib from source
 WORKDIR /tmp
 RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
     tar -xzf ta-lib-0.4.0-src.tar.gz && \
@@ -23,28 +21,23 @@ RUN wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz && \
     ./configure --prefix=/usr && \
     make && \
     make install
+
+# Set the library path for TA-Lib
+ENV LD_LIBRARY_PATH=/usr/lib:$LD_LIBRARY_PATH
+
 # Clean up TA-Lib source files
 RUN rm -rf /tmp/*
 # --- End TA-Lib C Library Install --- 
 
-# Set the working directory in the container
 WORKDIR /app
 
-# Copy the requirements file into the container
 COPY requirements.txt .
 
 # Install Python dependencies
-# Ensure TA-Lib wrapper is installed *after* the C library
+# Ensure TA-Lib wrapper is installed *after* the C library and LD_LIBRARY_PATH is set
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of the application code into the container
 COPY . .
 
-# Expose the port Streamlit will run on (Render uses $PORT)
-# EXPOSE $PORT # Not strictly necessary as Render injects $PORT
-
-# Command to run the application using Honcho
-# Honcho will read the Procfile and start the 'web' and 'bot' processes
 CMD ["honcho", "start"]
-
